@@ -17,6 +17,16 @@ interface ToolDef {
 // ─── Tool Definitions ────────────────────────────────────────────
 
 export const tools: ToolDef[] = [
+  // ── Guide ─────────────────────────────────────────────────────
+  {
+    name: "finney_guide",
+    description: "START HERE. Returns a step-by-step guide on how to build, deploy, and list apps on Finney using MCP tools. Call this first before using any other tool.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+
   // ── Apps ──────────────────────────────────────────────────────
   {
     name: "finney_list_apps",
@@ -57,7 +67,7 @@ export const tools: ToolDef[] = [
   // ── Tools ─────────────────────────────────────────────────────
   {
     name: "finney_get_tool",
-    description: "Get detailed information about a specific tool/app by its ID.",
+    description: "Get detailed information about a specific app by its ID. Returns preview_url, sandbox_id, github_repo, status, and architecture_summary. Use after a successful build to get the preview URL and sandbox_id (needed for deploy).",
     inputSchema: {
       type: "object",
       properties: {
@@ -81,7 +91,7 @@ export const tools: ToolDef[] = [
   // ── Builds ────────────────────────────────────────────────────
   {
     name: "finney_build",
-    description: "Start a new app build from a prompt. Creates a new app and begins building it.",
+    description: "WARNING: This is a synchronous endpoint that blocks for 3-5 minutes and will likely timeout over MCP. Use finney_trigger_build instead, which returns immediately and lets you poll with finney_get_build_status.",
     inputSchema: {
       type: "object",
       properties: {
@@ -94,12 +104,13 @@ export const tools: ToolDef[] = [
   },
   {
     name: "finney_trigger_build",
-    description: "Trigger a new build for an existing app. Provide a prompt describing what to build or change.",
+    description: "RECOMMENDED way to build apps. Returns appId and buildId immediately, then builds in background. Pass appId='new' to create a new app, or an existing appId to modify/fix. After calling, poll finney_get_build_status every 15-30 seconds until status is 'success' or 'failed'. Builds typically take 2-5 minutes.",
     inputSchema: {
       type: "object",
       properties: {
-        appId: { type: "string", description: "The app ID to build" },
+        appId: { type: "string", description: "The app ID to build, or 'new' to create a new app" },
         prompt: { type: "string", description: "Build prompt describing what to create or modify" },
+        appName: { type: "string", description: "Name for the app (used when appId='new')" },
         mode: { type: "string", enum: ["build", "modify", "fix"], description: "Build mode: 'build' for new, 'modify' to change, 'fix' to repair (default: build)" },
         envVars: { type: "object", description: "Environment variables to pass to the build", additionalProperties: { type: "string" } },
         needsDatabase: { type: "boolean", description: "Whether the app needs a database provisioned" },
@@ -109,11 +120,11 @@ export const tools: ToolDef[] = [
   },
   {
     name: "finney_get_build_status",
-    description: "Check the current status, phase, and progress of a build.",
+    description: "Poll this after finney_trigger_build to track progress. Returns status ('running', 'success', 'failed'), current phase ('planning', 'building', 'testing', 'pushing', 'publish'), and iterations_used. Poll every 15-30 seconds. When status is 'success', use finney_get_tool with the appId to get the preview_url.",
     inputSchema: {
       type: "object",
       properties: {
-        buildId: { type: "string", description: "The build ID to check" },
+        buildId: { type: "string", description: "The build ID returned by finney_trigger_build" },
       },
       required: ["buildId"],
     },
@@ -132,7 +143,7 @@ export const tools: ToolDef[] = [
   },
   {
     name: "finney_build_upload",
-    description: "Upload a file to build an app (multipart/form-data). NOTE: File upload is not supported via MCP tool calls. Use the Finney web UI or a direct HTTP client instead.",
+    description: "NOT SUPPORTED via MCP. Use the Finney web UI for file uploads.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -140,7 +151,7 @@ export const tools: ToolDef[] = [
   },
   {
     name: "finney_build_stream",
-    description: "Start a streaming build. Consumes the SSE build stream and returns the final result with all events.",
+    description: "WARNING: SSE streaming over MCP will timeout and disconnect. Use finney_trigger_build + finney_get_build_status polling instead.",
     inputSchema: {
       type: "object",
       properties: {
@@ -155,7 +166,7 @@ export const tools: ToolDef[] = [
   // ── Deploy & Preview ──────────────────────────────────────────
   {
     name: "finney_deploy",
-    description: "Deploy an app to production. Consumes the SSE deploy stream and returns the final result.",
+    description: "WARNING: SSE streaming deploy — may timeout over MCP. Use finney_trigger_deploy instead for reliable deployments.",
     inputSchema: {
       type: "object",
       properties: {
@@ -166,8 +177,20 @@ export const tools: ToolDef[] = [
     },
   },
   {
+    name: "finney_trigger_deploy",
+    description: "RECOMMENDED way to deploy. Returns immediately, deploys in background. Get sandboxId from finney_get_tool after a successful build. After calling, poll finney_get_tool every 15-30 seconds — when status changes to 'live', deploy_url will be populated. Deploy takes 1-3 minutes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        appId: { type: "string", description: "The app ID to deploy" },
+        sandboxId: { type: "string", description: "The sandbox ID (from finney_get_tool after build)" },
+      },
+      required: ["appId", "sandboxId"],
+    },
+  },
+  {
     name: "finney_regenerate_preview",
-    description: "Regenerate the preview for an app, returning a new preview URL.",
+    description: "Regenerate the preview for an app if the sandbox expired. Returns a new preview URL. Takes 2-5 minutes (triggers a rebuild in fix mode).",
     inputSchema: {
       type: "object",
       properties: {
@@ -283,17 +306,19 @@ export const tools: ToolDef[] = [
   },
   {
     name: "finney_create_listing",
-    description: "Create a new marketplace listing for an app.",
+    description: "Create a new marketplace listing for an app. Use finney_list_categories to get valid category IDs first. After creating, use finney_publish_listing to make it visible.",
     inputSchema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Listing name" },
-        description: { type: "string", description: "Listing description" },
-        category: { type: "string", description: "Category for the listing" },
-        repoUrl: { type: "string", description: "Repository URL" },
+        title: { type: "string", description: "Listing title" },
+        short_description: { type: "string", description: "Short description (1-2 sentences)" },
+        long_description: { type: "string", description: "Detailed markdown description" },
+        category_id: { type: "string", description: "Category UUID from finney_list_categories" },
+        app_id: { type: "string", description: "The Finney app ID to list" },
+        listing_type: { type: "string", enum: ["finney", "external"], description: "Listing type (default: finney)" },
         tags: { type: "array", items: { type: "string" }, description: "Tags for the listing" },
       },
-      required: ["name", "description", "category"],
+      required: ["title", "short_description", "category_id", "app_id"],
     },
   },
   {
@@ -592,7 +617,7 @@ export const tools: ToolDef[] = [
       type: "object",
       properties: {
         name: { type: "string", description: "Name for the API key" },
-        scopes: { type: "array", items: { type: "string" }, description: "Permission scopes (e.g. ['read', 'write', 'deploy'])" },
+        scope: { type: "string", enum: ["READONLY", "FULL_ACCESS"], description: "Permission scope (default: READONLY)" },
       },
       required: ["name"],
     },
@@ -824,6 +849,30 @@ type ToolArgs = Record<string, unknown>;
 export function createToolHandler(client: FinneyClient) {
   return async function handleToolCall(name: string, args: ToolArgs): Promise<unknown> {
     switch (name) {
+      // Guide
+      case "finney_guide":
+        return {
+          ok: true,
+          data: {
+            title: "Finney MCP — Agent Workflow Guide",
+            overview: "Finney is an AI app builder. You can build, preview, deploy, and list apps on the marketplace. All long-running operations are async — you trigger them and poll for status.",
+            workflow: {
+              "Step 1 — Build": { tool: "finney_trigger_build", params: { appId: "new", prompt: "describe what to build" }, note: "Returns appId + buildId immediately. Build runs in background (2-5 min)." },
+              "Step 2 — Poll Build": { tool: "finney_get_build_status", params: { buildId: "from step 1" }, note: "Poll every 15-30s. Phases: planning → building → testing → pushing → publish. Done when status is 'success' or 'failed'." },
+              "Step 3 — Get App Details": { tool: "finney_get_tool", params: { id: "appId from step 1" }, note: "Returns preview_url (live sandbox), sandbox_id (needed for deploy), github_repo." },
+              "Step 4 — Check Preview (optional)": { tool: "finney_preview_health", params: { id: "appId" }, note: "Verify the preview sandbox is running before deploying." },
+              "Step 5 — Deploy to Production": { tool: "finney_trigger_deploy", params: { appId: "from step 1", sandboxId: "from step 3" }, note: "Returns immediately. Poll finney_get_tool every 15-30s. When status is 'live', deploy_url is your production URL." },
+              "Step 6 — List on Exchange (optional)": { tools: ["finney_list_categories", "finney_create_listing"], note: "Get category IDs first. Create listing with title, short_description, category_id, and app_id. Listings auto-publish." },
+            },
+            important_notes: [
+              "Do NOT use finney_build or finney_build_stream — they block/timeout over MCP.",
+              "Do NOT use finney_deploy (SSE) — use finney_trigger_deploy instead.",
+              "Sandbox previews expire after 30 minutes. Use finney_regenerate_preview if needed.",
+              "Use finney_delete_app to clean up failed/orphaned apps.",
+            ],
+          },
+        };
+
       // Apps
       case "finney_list_apps":
         return client.listApps({
@@ -882,6 +931,9 @@ export function createToolHandler(client: FinneyClient) {
       case "finney_deploy":
         return client.deploy(args.appId as string, args.sandboxId as string);
 
+      case "finney_trigger_deploy":
+        return client.triggerDeploy(args.appId as string, args.sandboxId as string);
+
       case "finney_regenerate_preview":
         return client.regeneratePreview(args.appId as string);
 
@@ -933,10 +985,12 @@ export function createToolHandler(client: FinneyClient) {
 
       case "finney_create_listing":
         return client.createListing({
-          name: args.name as string,
-          description: args.description as string,
-          category: args.category as string,
-          repoUrl: args.repoUrl as string | undefined,
+          title: args.title as string,
+          short_description: args.short_description as string,
+          long_description: args.long_description as string | undefined,
+          category_id: args.category_id as string,
+          app_id: args.app_id as string | undefined,
+          listing_type: args.listing_type as string | undefined,
           tags: args.tags as string[] | undefined,
         });
 
@@ -1049,7 +1103,7 @@ export function createToolHandler(client: FinneyClient) {
       case "finney_create_api_key":
         return client.createApiKey({
           name: args.name as string,
-          scopes: args.scopes as string[] | undefined,
+          scope: args.scope as string | undefined,
         });
 
       case "finney_get_api_key":

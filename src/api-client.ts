@@ -261,6 +261,10 @@ export class FinneyClient {
     return this.consumeSSE("POST", "/api/deploy/stream", { appId, sandboxId });
   }
 
+  async triggerDeploy(appId: string, sandboxId: string) {
+    return this.request("POST", "/api/deploy/trigger", { appId, sandboxId });
+  }
+
   async regeneratePreview(appId: string) {
     return this.request("POST", "/api/rerun", { appId });
   }
@@ -321,10 +325,12 @@ export class FinneyClient {
   }
 
   async createListing(params: {
-    name: string;
-    description: string;
-    category: string;
-    repoUrl?: string;
+    title: string;
+    short_description: string;
+    long_description?: string;
+    category_id: string;
+    app_id?: string;
+    listing_type?: string;
     tags?: string[];
   }) {
     return this.request("POST", "/api/marketplace/listings", params);
@@ -445,7 +451,7 @@ export class FinneyClient {
     return this.request("GET", "/api/api-keys");
   }
 
-  async createApiKey(params: { name: string; scopes?: string[] }) {
+  async createApiKey(params: { name: string; scope?: string }) {
     return this.request("POST", "/api/api-keys", params);
   }
 
