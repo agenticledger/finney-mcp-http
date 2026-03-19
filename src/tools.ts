@@ -19,7 +19,7 @@ interface ToolDef {
 export const tools: ToolDef[] = [
   // ── Guide ─────────────────────────────────────────────────────
   {
-    name: "finney_guide",
+    name: "finney_readme",
     description: "START HERE. Returns a step-by-step guide on how to build, deploy, and list apps on Finney using MCP tools. Call this first before using any other tool.",
     inputSchema: {
       type: "object",
@@ -850,7 +850,7 @@ export function createToolHandler(client: FinneyClient) {
   return async function handleToolCall(name: string, args: ToolArgs): Promise<unknown> {
     switch (name) {
       // Guide
-      case "finney_guide":
+      case "finney_readme":
         return {
           ok: true,
           data: {
