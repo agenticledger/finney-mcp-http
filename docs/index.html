@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finney MCP Server - API Reference</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a2e;
+      --bg-card: #14141f;
+      --bg-code: #0d0d14;
+      --bg-sidebar: #12121a;
+      --border-primary: #2a2a3e;
+      --border-secondary: #1e1e30;
+      --text-primary: #e4e4ef;
+      --text-secondary: #9494a8;
+      --text-muted: #6b6b80;
+      --accent-primary: #635BFF;
+      --accent-primary-bg: rgba(99, 91, 255, 0.1);
+      --accent-green: #4ade80;
+      --accent-green-bg: rgba(74, 222, 128, 0.1);
+      --accent-cyan: #22d3ee;
+      --accent-cyan-bg: rgba(34, 211, 238, 0.1);
+      --accent-blue: #3b82f6;
+      --accent-blue-bg: rgba(59, 130, 246, 0.1);
+      --accent-red: #ef4444;
+      --accent-yellow: #eab308;
+      --accent-purple: #a855f7;
+      --sidebar-width: 280px;
+      --status-stable-bg: rgba(74, 222, 128, 0.1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: var(--sidebar-width); height: 100vh;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-primary);
+      overflow-y: auto; z-index: 100;
+      display: flex; flex-direction: column;
+    }
+    .sidebar-header {
+      padding: 20px; border-bottom: 1px solid var(--border-primary);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .sidebar-logo {
+      width: 36px; height: 36px;
+      background: var(--accent-primary-bg);
+      border: 1px solid var(--accent-primary);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: var(--accent-primary);
+    }
+    .sidebar-title { font-weight: 700; font-size: 15px; }
+    .sidebar-subtitle { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .sidebar-search { padding: 12px 16px; border-bottom: 1px solid var(--border-primary); }
+    .sidebar-search input {
+      width: 100%; background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary); border-radius: 6px;
+      padding: 8px 12px; color: var(--text-primary);
+      font-size: 13px; font-family: 'Inter', sans-serif; outline: none;
+    }
+    .sidebar-search input::placeholder { color: var(--text-muted); }
+    .sidebar-search input:focus { border-color: var(--accent-primary); }
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .sidebar-category {
+      padding: 8px 20px 4px; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted); margin-top: 8px;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 20px; font-size: 13px;
+      color: var(--text-secondary); text-decoration: none;
+      cursor: pointer; transition: all 0.15s;
+      border-left: 2px solid transparent;
+    }
+    .sidebar-link:hover {
+      color: var(--text-primary);
+      background: var(--accent-primary-bg);
+      border-left-color: var(--accent-primary);
+    }
+    .sidebar-link .tool-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent-primary); flex-shrink: 0;
+    }
+
+    /* Main content */
+    .main { margin-left: var(--sidebar-width); min-height: 100vh; }
+
+    /* Hero */
+    .hero {
+      padding: 48px 40px 32px;
+      border-bottom: 1px solid var(--border-primary);
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    }
+    .hero h1 {
+      font-size: 32px; font-weight: 700; margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--accent-primary), #d97706);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p { color: var(--text-secondary); font-size: 16px; max-width: 600px; margin-bottom: 24px; }
+    .hero-stats {
+      display: flex; gap: 24px; flex-wrap: wrap;
+    }
+    .hero-stat {
+      background: var(--bg-card); border: 1px solid var(--border-primary);
+      border-radius: 10px; padding: 16px 24px; min-width: 120px; text-align: center;
+    }
+    .hero-stat-value { font-size: 24px; font-weight: 700; color: var(--accent-primary); }
+    .hero-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      background: var(--status-stable-bg); color: var(--accent-green);
+      border: 1px solid rgba(74, 222, 128, 0.2); margin-bottom: 16px;
+    }
+    .status-badge::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent-green); animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Connect section */
+    .connect-section {
+      padding: 24px 40px; border-bottom: 1px solid var(--border-primary);
+      background: var(--bg-secondary);
+    }
+    .connect-section h2 { font-size: 16px; margin-bottom: 12px; }
+    .connect-code {
+      background: var(--bg-code); border: 1px solid var(--border-primary);
+      border-radius: 8px; padding: 16px 20px; position: relative;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: var(--accent-cyan); line-height: 1.8; overflow-x: auto;
+      white-space: pre;
+    }
+    .copy-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: var(--bg-tertiary); border: 1px solid var(--border-primary);
+      border-radius: 6px; padding: 4px 10px; font-size: 11px;
+      color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+    }
+    .copy-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+    .copy-btn.copied { color: var(--accent-green); border-color: var(--accent-green); }
+
+    /* Tools container */
+    .tools-container { padding: 32px 40px; }
+    .tools-container h2 { font-size: 20px; margin-bottom: 20px; }
+
+    /* Tool card */
+    .tool-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .tool-card:hover { border-color: var(--accent-primary); }
+    .tool-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; cursor: pointer;
+    }
+    .tool-card-header h3 {
+      font-size: 14px; font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-primary);
+    }
+    .tool-card-desc {
+      font-size: 13px; color: var(--text-secondary);
+      padding: 0 20px; margin-top: -8px;
+    }
+    .tool-card-body {
+      padding: 0 20px 16px; display: none;
+    }
+    .tool-card.open .tool-card-body { display: block; }
+    .tool-card-toggle {
+      font-size: 18px; color: var(--text-muted);
+      transition: transform 0.2s; user-select: none;
+    }
+    .tool-card.open .tool-card-toggle { transform: rotate(180deg); }
+
+    /* Param table */
+    .param-table {
+      width: 100%; border-collapse: collapse; margin-top: 12px;
+      font-size: 13px;
+    }
+    .param-table th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-muted);
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-primary);
+    }
+    .param-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-secondary);
+      color: var(--text-secondary);
+    }
+    .param-table td:first-child {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--accent-cyan);
+    }
+    .param-required {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      color: var(--accent-red); background: rgba(239, 68, 68, 0.1);
+      padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    }
+    .param-optional {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      color: var(--text-muted); background: var(--bg-tertiary);
+      padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    }
+    .param-type {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--accent-yellow);
+    }
+
+    /* Category badges */
+    .cat-badge {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 2px 8px; border-radius: 4px;
+      margin-right: 8px;
+    }
+    .cat-guide { background: rgba(168, 85, 247, 0.1); color: var(--accent-purple); }
+    .cat-apps { background: var(--accent-blue-bg); color: var(--accent-blue); }
+    .cat-tools { background: var(--accent-cyan-bg); color: var(--accent-cyan); }
+    .cat-builds { background: rgba(234, 179, 8, 0.1); color: var(--accent-yellow); }
+    .cat-deploy { background: var(--accent-green-bg); color: var(--accent-green); }
+    .cat-auth { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
+    .cat-marketplace { background: var(--accent-primary-bg); color: var(--accent-primary); }
+    .cat-orgs { background: var(--accent-blue-bg); color: var(--accent-blue); }
+    .cat-users { background: var(--accent-cyan-bg); color: var(--accent-cyan); }
+    .cat-keys { background: rgba(234, 179, 8, 0.1); color: var(--accent-yellow); }
+    .cat-sharing { background: var(--accent-green-bg); color: var(--accent-green); }
+    .cat-logs { background: rgba(168, 85, 247, 0.1); color: var(--accent-purple); }
+    .cat-chat { background: var(--accent-primary-bg); color: var(--accent-primary); }
+    .cat-skills { background: var(--accent-cyan-bg); color: var(--accent-cyan); }
+    .cat-settings { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
+    .cat-health { background: var(--accent-green-bg); color: var(--accent-green); }
+
+    /* Mobile */
+    .sidebar-toggle {
+      display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border-primary);
+      border-radius: 8px; padding: 8px 12px; color: var(--text-primary);
+      font-size: 18px; cursor: pointer;
+    }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-toggle { display: block; }
+      .main { margin-left: 0; }
+      .hero { padding: 24px 20px; }
+      .tools-container { padding: 20px; }
+      .connect-section { padding: 20px; }
+    }
+
+    /* Footer */
+    .footer {
+      padding: 24px 40px; border-top: 1px solid var(--border-primary);
+      text-align: center; color: var(--text-muted); font-size: 12px;
+    }
+    .footer a { color: var(--accent-primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">F</div>
+      <div>
+        <div class="sidebar-title">Finney MCP</div>
+        <div class="sidebar-subtitle">69 Tools</div>
+      </div>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="sidebarSearch" placeholder="Search tools..." oninput="filterTools(this.value)" />
+    </div>
+    <div class="sidebar-nav" id="sidebarNav"></div>
+  </nav>
+
+  <div class="main">
+    <section class="hero">
+      <span class="status-badge">Live on Railway</span>
+      <h1>Finney MCP Server</h1>
+      <p>AI Finance Tool Builder Platform. Build, deploy, and list apps on the Finney marketplace using 69 MCP tools over Streamable HTTP.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value">69</div>
+          <div class="hero-stat-label">Tools</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">10</div>
+          <div class="hero-stat-label">Categories</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">HTTP</div>
+          <div class="hero-stat-label">Transport</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">v1.0</div>
+          <div class="hero-stat-label">Version</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="connect-section">
+      <h2>Connect</h2>
+      <div class="connect-code" id="connectCode">{
+  "mcpServers": {
+    "finney": {
+      "type": "url",
+      "url": "https://finneymcp.agenticledger.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer &lt;your-finney-api-key&gt;"
+      }
+    }
+  }
+}<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    </section>
+
+    <section class="tools-container" id="toolsContainer"></section>
+
+    <div class="footer">
+      Finney MCP Server &mdash; <a href="https://finney.finance" target="_blank">finney.finance</a> &mdash;
+      Powered by <a href="https://agenticledger.ai" target="_blank">AgenticLedger</a>
+    </div>
+  </div>
+
+<script>
+// ── Tool Data ──
+const TOOLS = [
+  // Guide
+  { name: "finney_readme", cat: "Guide", catClass: "cat-guide", desc: "START HERE. Returns a step-by-step guide on how to build, deploy, and list apps on Finney using MCP tools. Call this first before using any other tool.", params: [] },
+
+  // Apps
+  { name: "finney_list_apps", cat: "Apps", catClass: "cat-apps", desc: "List all apps on the Finney platform. Optionally filter by status.", params: [
+    { name: "status", type: "string", req: false, desc: "Filter by app status (e.g. 'deployed', 'building', 'draft')" },
+    { name: "limit", type: "number", req: false, desc: "Max number of apps to return (default: 20)" },
+    { name: "offset", type: "number", req: false, desc: "Offset for pagination" },
+  ]},
+  { name: "finney_delete_app", cat: "Apps", catClass: "cat-apps", desc: "Delete an app from the Finney platform.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID to delete" },
+  ]},
+  { name: "finney_update_env_vars", cat: "Apps", catClass: "cat-apps", desc: "Update environment variables for an app.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID" },
+    { name: "env_vars", type: "object", req: true, desc: "Key-value pairs of environment variables to set" },
+  ]},
+
+  // Tools
+  { name: "finney_get_tool", cat: "Tools", catClass: "cat-tools", desc: "Get detailed information about a specific app by its ID. Returns preview_url, sandbox_id, github_repo, status, and architecture_summary.", params: [
+    { name: "id", type: "string", req: true, desc: "The tool ID" },
+  ]},
+  { name: "finney_delete_tool", cat: "Tools", catClass: "cat-tools", desc: "Delete a tool by its ID.", params: [
+    { name: "id", type: "string", req: true, desc: "The tool ID to delete" },
+  ]},
+
+  // Builds
+  { name: "finney_build", cat: "Builds", catClass: "cat-builds", desc: "WARNING: Synchronous endpoint that blocks for 3-5 minutes and will likely timeout over MCP. Use finney_trigger_build instead.", params: [
+    { name: "prompt", type: "string", req: true, desc: "Build prompt describing what to create" },
+    { name: "appName", type: "string", req: false, desc: "Optional name for the new app" },
+    { name: "description", type: "string", req: false, desc: "Optional description for the app" },
+  ]},
+  { name: "finney_trigger_build", cat: "Builds", catClass: "cat-builds", desc: "RECOMMENDED way to build apps. Returns appId and buildId immediately, then builds in background. Poll finney_get_build_status every 15-30 seconds.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID to build, or 'new' to create a new app" },
+    { name: "prompt", type: "string", req: true, desc: "Build prompt describing what to create or modify" },
+    { name: "appName", type: "string", req: false, desc: "Name for the app (used when appId='new')" },
+    { name: "mode", type: "string", req: false, desc: "Build mode: 'build', 'modify', or 'fix'" },
+    { name: "envVars", type: "object", req: false, desc: "Environment variables to pass to the build" },
+    { name: "needsDatabase", type: "boolean", req: false, desc: "Whether the app needs a database provisioned" },
+  ]},
+  { name: "finney_get_build_status", cat: "Builds", catClass: "cat-builds", desc: "Poll this after finney_trigger_build to track progress. Returns status ('running', 'success', 'failed'), current phase, and iterations_used.", params: [
+    { name: "buildId", type: "string", req: true, desc: "The build ID returned by finney_trigger_build" },
+  ]},
+  { name: "finney_list_builds", cat: "Builds", catClass: "cat-builds", desc: "List builds for an app with tracking data.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID" },
+    { name: "limit", type: "number", req: false, desc: "Max number of builds to return" },
+  ]},
+  { name: "finney_build_upload", cat: "Builds", catClass: "cat-builds", desc: "NOT SUPPORTED via MCP. Use the Finney web UI for file uploads.", params: [] },
+  { name: "finney_build_stream", cat: "Builds", catClass: "cat-builds", desc: "WARNING: SSE streaming over MCP will timeout. Use finney_trigger_build + finney_get_build_status polling instead.", params: [
+    { name: "prompt", type: "string", req: true, desc: "Build prompt describing what to create or modify" },
+    { name: "appId", type: "string", req: false, desc: "Optional app ID for modifying an existing app" },
+    { name: "mode", type: "string", req: false, desc: "Build mode (e.g. 'build', 'modify', 'fix')" },
+  ]},
+
+  // Deploy & Preview
+  { name: "finney_deploy", cat: "Deploy", catClass: "cat-deploy", desc: "WARNING: SSE streaming deploy -- may timeout over MCP. Use finney_trigger_deploy instead.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID to deploy" },
+    { name: "sandboxId", type: "string", req: true, desc: "The sandbox ID to deploy from" },
+  ]},
+  { name: "finney_trigger_deploy", cat: "Deploy", catClass: "cat-deploy", desc: "RECOMMENDED way to deploy. Returns immediately, deploys in background. Poll finney_get_tool every 15-30 seconds.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID to deploy" },
+    { name: "sandboxId", type: "string", req: true, desc: "The sandbox ID (from finney_get_tool after build)" },
+  ]},
+  { name: "finney_regenerate_preview", cat: "Deploy", catClass: "cat-deploy", desc: "Regenerate the preview for an app if the sandbox expired. Returns a new preview URL.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID" },
+  ]},
+  { name: "finney_preview_health", cat: "Deploy", catClass: "cat-deploy", desc: "Run a health check on the app's preview environment.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID" },
+  ]},
+  { name: "finney_test_routes", cat: "Deploy", catClass: "cat-deploy", desc: "Test specific routes of an app's preview.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID" },
+    { name: "routes", type: "string", req: false, desc: "Comma-separated list of routes to test" },
+  ]},
+
+  // Auth
+  { name: "finney_signup", cat: "Auth", catClass: "cat-auth", desc: "Create a new user account on the Finney platform.", params: [
+    { name: "email", type: "string", req: true, desc: "Email address" },
+    { name: "password", type: "string", req: true, desc: "Password" },
+    { name: "orgName", type: "string", req: false, desc: "Optional organization name to create" },
+  ]},
+  { name: "finney_convert_account", cat: "Auth", catClass: "cat-auth", desc: "Convert an anonymous account to a full account with email and password.", params: [
+    { name: "email", type: "string", req: true, desc: "Email address" },
+    { name: "password", type: "string", req: true, desc: "Password" },
+    { name: "orgName", type: "string", req: false, desc: "Optional organization name" },
+  ]},
+  { name: "finney_complete_oauth", cat: "Auth", catClass: "cat-auth", desc: "Complete an OAuth sign-in flow, optionally creating an organization.", params: [
+    { name: "orgName", type: "string", req: false, desc: "Optional organization name to create" },
+  ]},
+  { name: "finney_platform_login", cat: "Auth", catClass: "cat-auth", desc: "Complete platform login via OAuth code exchange.", params: [
+    { name: "code", type: "string", req: true, desc: "OAuth authorization code" },
+    { name: "state", type: "string", req: false, desc: "OAuth state parameter" },
+  ]},
+  { name: "finney_setup_anonymous", cat: "Auth", catClass: "cat-auth", desc: "Create an anonymous session for quick-start usage without sign-up.", params: [] },
+
+  // Marketplace
+  { name: "finney_list_categories", cat: "Marketplace", catClass: "cat-marketplace", desc: "List all available marketplace categories.", params: [] },
+  { name: "finney_list_marketplace", cat: "Marketplace", catClass: "cat-marketplace", desc: "Browse marketplace listings. Search by keyword or filter by category.", params: [
+    { name: "search", type: "string", req: false, desc: "Search keyword" },
+    { name: "category", type: "string", req: false, desc: "Category filter" },
+    { name: "status", type: "string", req: false, desc: "Status filter (e.g. 'published', 'draft')" },
+    { name: "limit", type: "number", req: false, desc: "Max number of listings to return" },
+    { name: "offset", type: "number", req: false, desc: "Offset for pagination" },
+  ]},
+  { name: "finney_create_listing", cat: "Marketplace", catClass: "cat-marketplace", desc: "Create a new marketplace listing for an app.", params: [
+    { name: "title", type: "string", req: true, desc: "Listing title" },
+    { name: "short_description", type: "string", req: true, desc: "Short description (1-2 sentences)" },
+    { name: "long_description", type: "string", req: false, desc: "Detailed markdown description" },
+    { name: "category_id", type: "string", req: true, desc: "Category UUID from finney_list_categories" },
+    { name: "app_id", type: "string", req: true, desc: "The Finney app ID to list" },
+    { name: "listing_type", type: "string", req: false, desc: "Listing type ('finney' or 'external')" },
+    { name: "tags", type: "array", req: false, desc: "Tags for the listing" },
+  ]},
+  { name: "finney_get_listing", cat: "Marketplace", catClass: "cat-marketplace", desc: "Get details of a specific marketplace listing by slug.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug" },
+  ]},
+  { name: "finney_update_listing", cat: "Marketplace", catClass: "cat-marketplace", desc: "Update a marketplace listing.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug" },
+    { name: "name", type: "string", req: false, desc: "Updated name" },
+    { name: "description", type: "string", req: false, desc: "Updated description" },
+    { name: "category", type: "string", req: false, desc: "Updated category" },
+    { name: "status", type: "string", req: false, desc: "Updated status" },
+    { name: "tags", type: "array", req: false, desc: "Updated tags" },
+  ]},
+  { name: "finney_delete_listing", cat: "Marketplace", catClass: "cat-marketplace", desc: "Delete a marketplace listing.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug to delete" },
+  ]},
+  { name: "finney_publish_listing", cat: "Marketplace", catClass: "cat-marketplace", desc: "Publish a marketplace listing, making it visible to all users.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug to publish" },
+  ]},
+  { name: "finney_get_reviews", cat: "Marketplace", catClass: "cat-marketplace", desc: "Get reviews for a marketplace listing.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug" },
+    { name: "limit", type: "number", req: false, desc: "Max number of reviews to return" },
+    { name: "offset", type: "number", req: false, desc: "Offset for pagination" },
+  ]},
+  { name: "finney_submit_review", cat: "Marketplace", catClass: "cat-marketplace", desc: "Submit a review for a marketplace listing.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug" },
+    { name: "rating", type: "number", req: true, desc: "Rating (1-5)" },
+    { name: "comment", type: "string", req: false, desc: "Review comment" },
+  ]},
+  { name: "finney_update_review", cat: "Marketplace", catClass: "cat-marketplace", desc: "Update an existing review on a marketplace listing.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug" },
+    { name: "reviewId", type: "string", req: true, desc: "The review ID to update" },
+    { name: "rating", type: "number", req: false, desc: "Updated rating (1-5)" },
+    { name: "comment", type: "string", req: false, desc: "Updated comment" },
+  ]},
+  { name: "finney_delete_review", cat: "Marketplace", catClass: "cat-marketplace", desc: "Delete a review from a marketplace listing.", params: [
+    { name: "slug", type: "string", req: true, desc: "The listing slug" },
+    { name: "reviewId", type: "string", req: true, desc: "The review ID to delete" },
+  ]},
+  { name: "finney_admin_listings", cat: "Marketplace", catClass: "cat-marketplace", desc: "Get all marketplace listings for admin moderation (admin only).", params: [] },
+  { name: "finney_admin_moderate", cat: "Marketplace", catClass: "cat-marketplace", desc: "Moderate a marketplace listing -- approve, reject, or suspend (admin only).", params: [
+    { name: "listingId", type: "string", req: true, desc: "The listing ID to moderate" },
+    { name: "status", type: "string", req: true, desc: "New status ('approved', 'rejected', 'suspended')" },
+    { name: "rejectionReason", type: "string", req: false, desc: "Reason for rejection" },
+  ]},
+  { name: "finney_install_listing", cat: "Marketplace", catClass: "cat-marketplace", desc: "Install an app from a marketplace listing into your workspace.", params: [
+    { name: "listingId", type: "string", req: true, desc: "The marketplace listing ID to install" },
+  ]},
+  { name: "finney_get_notifications", cat: "Marketplace", catClass: "cat-marketplace", desc: "Get marketplace notifications for the current user.", params: [] },
+
+  // Organizations
+  { name: "finney_list_orgs", cat: "Organizations", catClass: "cat-orgs", desc: "List all organizations the current user belongs to.", params: [] },
+  { name: "finney_create_org", cat: "Organizations", catClass: "cat-orgs", desc: "Create a new organization.", params: [
+    { name: "name", type: "string", req: true, desc: "Organization name" },
+    { name: "slug", type: "string", req: false, desc: "URL-friendly slug for the organization" },
+  ]},
+  { name: "finney_search_orgs", cat: "Organizations", catClass: "cat-orgs", desc: "Search organizations by name.", params: [
+    { name: "q", type: "string", req: true, desc: "Search query" },
+  ]},
+  { name: "finney_get_org", cat: "Organizations", catClass: "cat-orgs", desc: "Get details of a specific organization.", params: [
+    { name: "id", type: "string", req: true, desc: "The organization ID" },
+  ]},
+  { name: "finney_update_org", cat: "Organizations", catClass: "cat-orgs", desc: "Update an organization's name or slug.", params: [
+    { name: "id", type: "string", req: true, desc: "The organization ID" },
+    { name: "name", type: "string", req: false, desc: "Updated name" },
+    { name: "slug", type: "string", req: false, desc: "Updated slug" },
+  ]},
+  { name: "finney_delete_org", cat: "Organizations", catClass: "cat-orgs", desc: "Delete an organization.", params: [
+    { name: "id", type: "string", req: true, desc: "The organization ID to delete" },
+  ]},
+  { name: "finney_list_members", cat: "Organizations", catClass: "cat-orgs", desc: "List members of an organization.", params: [
+    { name: "orgId", type: "string", req: true, desc: "The organization ID" },
+  ]},
+  { name: "finney_invite_member", cat: "Organizations", catClass: "cat-orgs", desc: "Invite a new member to an organization by email.", params: [
+    { name: "orgId", type: "string", req: true, desc: "The organization ID" },
+    { name: "email", type: "string", req: true, desc: "Email address to invite" },
+    { name: "role", type: "string", req: true, desc: "Role to assign ('admin', 'member', 'viewer')" },
+  ]},
+  { name: "finney_update_member", cat: "Organizations", catClass: "cat-orgs", desc: "Update a member's role in an organization.", params: [
+    { name: "orgId", type: "string", req: true, desc: "The organization ID" },
+    { name: "memberId", type: "string", req: true, desc: "The member ID" },
+    { name: "role", type: "string", req: true, desc: "New role to assign" },
+  ]},
+  { name: "finney_remove_member", cat: "Organizations", catClass: "cat-orgs", desc: "Remove a member from an organization.", params: [
+    { name: "orgId", type: "string", req: true, desc: "The organization ID" },
+    { name: "memberId", type: "string", req: true, desc: "The member ID to remove" },
+  ]},
+
+  // Users
+  { name: "finney_get_profile", cat: "Users", catClass: "cat-users", desc: "Get the current user's profile information.", params: [] },
+  { name: "finney_update_profile", cat: "Users", catClass: "cat-users", desc: "Update the current user's profile.", params: [
+    { name: "name", type: "string", req: false, desc: "Updated display name" },
+    { name: "email", type: "string", req: false, desc: "Updated email address" },
+  ]},
+
+  // API Keys
+  { name: "finney_list_api_keys", cat: "API Keys", catClass: "cat-keys", desc: "List all API keys for the current user.", params: [] },
+  { name: "finney_create_api_key", cat: "API Keys", catClass: "cat-keys", desc: "Create a new API key.", params: [
+    { name: "name", type: "string", req: true, desc: "Name for the API key" },
+    { name: "scope", type: "string", req: false, desc: "Permission scope ('READONLY' or 'FULL_ACCESS')" },
+  ]},
+  { name: "finney_get_api_key", cat: "API Keys", catClass: "cat-keys", desc: "Get details of a specific API key.", params: [
+    { name: "id", type: "string", req: true, desc: "The API key ID" },
+  ]},
+  { name: "finney_update_api_key", cat: "API Keys", catClass: "cat-keys", desc: "Update an API key's name or status.", params: [
+    { name: "id", type: "string", req: true, desc: "The API key ID" },
+    { name: "status", type: "string", req: false, desc: "New status ('active', 'revoked')" },
+    { name: "name", type: "string", req: false, desc: "Updated name" },
+  ]},
+  { name: "finney_delete_api_key", cat: "API Keys", catClass: "cat-keys", desc: "Delete an API key.", params: [
+    { name: "id", type: "string", req: true, desc: "The API key ID to delete" },
+  ]},
+
+  // Sharing
+  { name: "finney_list_shares", cat: "Sharing", catClass: "cat-sharing", desc: "List app shares. Optionally filter by type or app ID.", params: [
+    { name: "type", type: "string", req: false, desc: "Filter by share type" },
+    { name: "appId", type: "string", req: false, desc: "Filter by app ID" },
+  ]},
+  { name: "finney_create_share", cat: "Sharing", catClass: "cat-sharing", desc: "Share an app with a user or organization.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID to share" },
+    { name: "sharedWith", type: "string", req: true, desc: "User ID or org ID to share with" },
+    { name: "sharedWithType", type: "string", req: true, desc: "Type: 'user' or 'organization'" },
+    { name: "permission", type: "string", req: true, desc: "Permission: 'view', 'edit', 'admin'" },
+  ]},
+  { name: "finney_manage_share", cat: "Sharing", catClass: "cat-sharing", desc: "Manage an existing share -- accept, reject, or revoke it.", params: [
+    { name: "shareId", type: "string", req: true, desc: "The share ID to manage" },
+    { name: "action", type: "string", req: true, desc: "Action: 'accept', 'reject', 'revoke'" },
+  ]},
+
+  // Logs & Monitoring
+  { name: "finney_get_railway_logs", cat: "Logs", catClass: "cat-logs", desc: "Get Railway deployment logs for an app.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID" },
+    { name: "type", type: "string", req: false, desc: "Log type: 'build', 'deploy', 'http'" },
+    { name: "limit", type: "number", req: false, desc: "Max number of log entries" },
+    { name: "since", type: "string", req: false, desc: "ISO date string -- only return logs after this time" },
+  ]},
+  { name: "finney_dashboard_stats", cat: "Logs", catClass: "cat-logs", desc: "Get dashboard statistics: app counts by status across the platform.", params: [] },
+
+  // Chat
+  { name: "finney_chat", cat: "Chat", catClass: "cat-chat", desc: "Send a chat message to the Finney AI assistant.", params: [
+    { name: "messages", type: "array", req: true, desc: "Array of chat messages [{role, content}]" },
+  ]},
+
+  // Skills
+  { name: "finney_list_skills", cat: "Skills", catClass: "cat-skills", desc: "List all available skills/capabilities on the platform.", params: [] },
+
+  // Settings
+  { name: "finney_get_settings", cat: "Settings", catClass: "cat-settings", desc: "Get platform settings.", params: [] },
+  { name: "finney_update_settings", cat: "Settings", catClass: "cat-settings", desc: "Update a platform setting (admin only).", params: [
+    { name: "setting_name", type: "string", req: true, desc: "The setting name to update" },
+    { name: "setting_value", type: "any", req: true, desc: "The new value for the setting" },
+  ]},
+  { name: "finney_register_tool", cat: "Settings", catClass: "cat-settings", desc: "Register an external tool/service with the platform.", params: [
+    { name: "name", type: "string", req: true, desc: "Tool name" },
+    { name: "description", type: "string", req: true, desc: "Tool description" },
+    { name: "url", type: "string", req: true, desc: "Tool endpoint URL" },
+    { name: "type", type: "string", req: true, desc: "Tool type ('mcp', 'api', 'webhook')" },
+  ]},
+
+  // Health & Debug
+  { name: "finney_health", cat: "Health", catClass: "cat-health", desc: "Check the health of the Finney API.", params: [] },
+  { name: "finney_debug_app", cat: "Health", catClass: "cat-health", desc: "Get debug information for an app -- sandbox state, environment, recent errors.", params: [
+    { name: "appId", type: "string", req: true, desc: "The app ID to debug" },
+  ]},
+  { name: "finney_test_e2b", cat: "Health", catClass: "cat-health", desc: "Test the E2B sandbox integration.", params: [] },
+  { name: "finney_test_github", cat: "Health", catClass: "cat-health", desc: "Test the GitHub integration.", params: [] },
+  { name: "finney_test_email", cat: "Health", catClass: "cat-health", desc: "Send a test email to verify email delivery.", params: [
+    { name: "to", type: "string", req: true, desc: "Recipient email address" },
+    { name: "subject", type: "string", req: true, desc: "Email subject" },
+    { name: "body", type: "string", req: true, desc: "Email body" },
+  ]},
+];
+
+// ── Render ──
+function renderSidebar() {
+  const nav = document.getElementById('sidebarNav');
+  let currentCat = '';
+  let html = '';
+  TOOLS.forEach((t, i) => {
+    if (t.cat !== currentCat) {
+      currentCat = t.cat;
+      html += '<div class="sidebar-category">' + currentCat + '</div>';
+    }
+    html += '<a class="sidebar-link" onclick="scrollToTool(' + i + ')">' +
+      '<span class="tool-dot"></span>' + t.name + '</a>';
+  });
+  nav.innerHTML = html;
+}
+
+function renderTools() {
+  const container = document.getElementById('toolsContainer');
+  let html = '<h2>All Tools (' + TOOLS.length + ')</h2>';
+  TOOLS.forEach((t, i) => {
+    html += '<div class="tool-card" id="tool-' + i + '">' +
+      '<div class="tool-card-header" onclick="toggleCard(' + i + ')">' +
+      '<div><span class="cat-badge ' + t.catClass + '">' + t.cat + '</span>' +
+      '<h3>' + t.name + '</h3></div>' +
+      '<span class="tool-card-toggle">&#9662;</span></div>' +
+      '<p class="tool-card-desc">' + t.desc + '</p>' +
+      '<div class="tool-card-body">';
+    if (t.params.length > 0) {
+      html += '<table class="param-table"><thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead><tbody>';
+      t.params.forEach(p => {
+        const badge = p.req ? '<span class="param-required">required</span>' : '<span class="param-optional">optional</span>';
+        html += '<tr><td>' + p.name + badge + '</td>' +
+          '<td><span class="param-type">' + p.type + '</span></td>' +
+          '<td>' + p.desc + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:13px;padding:8px 0;">No parameters required.</p>';
+    }
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function toggleCard(i) {
+  document.getElementById('tool-' + i).classList.toggle('open');
+}
+
+function scrollToTool(i) {
+  const el = document.getElementById('tool-' + i);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.classList.add('open');
+    // Close sidebar on mobile
+    document.querySelector('.sidebar').classList.remove('open');
+  }
+}
+
+function filterTools(query) {
+  const q = query.toLowerCase();
+  TOOLS.forEach((t, i) => {
+    const el = document.getElementById('tool-' + i);
+    const match = t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q) || t.cat.toLowerCase().includes(q);
+    if (el) el.style.display = match ? '' : 'none';
+  });
+  // Also filter sidebar
+  const links = document.querySelectorAll('.sidebar-link');
+  const cats = document.querySelectorAll('.sidebar-category');
+  links.forEach((link, i) => {
+    const t = TOOLS[i];
+    const match = t.name.toLowerCase().includes(q) || t.cat.toLowerCase().includes(q);
+    link.style.display = match ? '' : 'none';
+  });
+  cats.forEach(cat => {
+    const catName = cat.textContent.toLowerCase();
+    const hasVisible = Array.from(cat.parentElement.querySelectorAll('.sidebar-link')).some(l => l.style.display !== 'none');
+    cat.style.display = catName.includes(q) || hasVisible ? '' : 'none';
+  });
+}
+
+function copyCode(btn) {
+  const code = document.getElementById('connectCode').textContent.replace('Copy', '').trim()
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Init
+renderSidebar();
+renderTools();
+</script>
+</body>
+</html>
